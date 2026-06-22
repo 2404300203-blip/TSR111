@@ -198,6 +198,7 @@ def load_pretrained_params(model, path):
         path + ".pdparams"
     ), "The {}.pdparams does not exists!".format(path)
 
+    _ensure_numpy_core_pickle_compat()
     params = paddle.load(path + ".pdparams")
 
     state_dict = model.state_dict()
