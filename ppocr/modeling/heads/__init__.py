@@ -58,6 +58,7 @@ def build_head(config):
     from .table_attn_transformer_head import SLAAttnTransformerHead
     from .cell_token_mlp_head import CellTokenMLPHead
     from .cell_dual_branch_mamba_head import CellDualBranchMambaHead
+    from .cell_full_mamba_head import CellFullMambaHead
 
     support_dict = [
         "DBHead",
@@ -82,6 +83,7 @@ def build_head(config):
         "SLAAttnTransformerHead",
         "CellTokenMLPHead",
         "CellDualBranchMambaHead",
+        "CellFullMambaHead",
         "SPINAttentionHead",
         "VLHead",
         "SLAHead",
