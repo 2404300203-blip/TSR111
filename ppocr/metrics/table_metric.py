@@ -11,15 +11,108 @@
 # WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 # See the License for the specific language governing permissions and
 # limitations under the License.
+from dataclasses import dataclass, field
+
 import numpy as np
 from ppocr.metrics.det_metric import DetMetric
 
 
+@dataclass
+class _TEDSNode:
+    label: str
+    children: list = field(default_factory=list)
+
+
+def _normalize_teds_token(token):
+    token = str(token).strip()
+    if token.startswith("</"):
+        return token
+    if token.startswith("<") and token.endswith(">"):
+        return token
+    return "#text"
+
+
+def _build_teds_tree(tokens):
+    root = _TEDSNode("root")
+    stack = [root]
+    for raw in tokens:
+        token = _normalize_teds_token(raw)
+        if not token:
+            continue
+        if token.startswith("</"):
+            if len(stack) > 1:
+                stack.pop()
+            continue
+        node = _TEDSNode(token)
+        stack[-1].children.append(node)
+        if token.startswith("<") and not token.startswith("</") and token not in {
+            "<br>",
+            "<hr>",
+            "<img>",
+        }:
+            stack.append(node)
+    return root
+
+
+def _teds_tree_size(node):
+    total = 0
+    stack = [node]
+    while stack:
+        cur = stack.pop()
+        total += 1
+        stack.extend(cur.children)
+    return total
+
+
+def _teds_tree_distance(a, b, memo):
+    key = (id(a), id(b))
+    if key in memo:
+        return memo[key]
+
+    rename = 0 if a.label == b.label else 1
+    ac = a.children
+    bc = b.children
+    dp = [[0] * (len(bc) + 1) for _ in range(len(ac) + 1)]
+
+    for i in range(1, len(ac) + 1):
+        dp[i][0] = dp[i - 1][0] + _teds_tree_size(ac[i - 1])
+    for j in range(1, len(bc) + 1):
+        dp[0][j] = dp[0][j - 1] + _teds_tree_size(bc[j - 1])
+
+    for i in range(1, len(ac) + 1):
+        for j in range(1, len(bc) + 1):
+            dp[i][j] = min(
+                dp[i - 1][j] + _teds_tree_size(ac[i - 1]),
+                dp[i][j - 1] + _teds_tree_size(bc[j - 1]),
+                dp[i - 1][j - 1] + _teds_tree_distance(ac[i - 1], bc[j - 1], memo),
+            )
+
+    value = rename + dp[len(ac)][len(bc)]
+    memo[key] = value
+    return value
+
+
+def table_teds_score(pred_tokens, gt_tokens):
+    pred_tree = _build_teds_tree(pred_tokens)
+    gt_tree = _build_teds_tree(gt_tokens)
+    denom = max(_teds_tree_size(pred_tree), _teds_tree_size(gt_tree), 1)
+    dist = _teds_tree_distance(pred_tree, gt_tree, {})
+    return max(0.0, 1.0 - dist / denom)
+
+
 class TableStructureMetric(object):
-    def __init__(self, main_indicator="acc", eps=1e-6, del_thead_tbody=False, **kwargs):
+    def __init__(
+        self,
+        main_indicator="acc",
+        eps=1e-6,
+        del_thead_tbody=False,
+        compute_teds=False,
+        **kwargs,
+    ):
         self.main_indicator = main_indicator
         self.eps = eps
         self.del_thead_tbody = del_thead_tbody
+        self.compute_teds = compute_teds
         self.reset()
 
     def __call__(self, pred_label, batch=None, *args, **kwargs):
@@ -48,6 +141,21 @@ class TableStructureMetric(object):
                 )
             if pred_str == target_str:
                 correct_num += 1
+            if self.compute_teds:
+                pred_tokens = [
+                    token
+                    for token in pred
+                    if token not in ("<html>", "</html>", "<body>", "</body>")
+                ]
+                target_tokens = [
+                    token
+                    for token in target
+                    if token not in ("<html>", "</html>", "<body>", "</body>")
+                ]
+                try:
+                    self.total_teds += table_teds_score(pred_tokens, target_tokens)
+                except RecursionError:
+                    pass
             all_num += 1
         self.correct_num += correct_num
         self.all_num += all_num
@@ -59,12 +167,16 @@ class TableStructureMetric(object):
             }
         """
         acc = 1.0 * self.correct_num / (self.all_num + self.eps)
+        result = {"acc": acc}
+        if self.compute_teds:
+            result["teds"] = 1.0 * self.total_teds / (self.all_num + self.eps)
         self.reset()
-        return {"acc": acc}
+        return result
 
     def reset(self):
         self.correct_num = 0
         self.all_num = 0
+        self.total_teds = 0.0
         self.len_acc_num = 0
         self.token_nums = 0
         self.anys_dict = dict()
@@ -75,6 +187,7 @@ class TableMetric(object):
         self,
         main_indicator="acc",
         compute_bbox_metric=False,
+        compute_teds=False,
         box_format="xyxy",
         del_thead_tbody=False,
         **kwargs,
@@ -85,7 +198,10 @@ class TableMetric(object):
         @param main_matric: main_matric for save best_model
         @param kwargs:
         """
-        self.structure_metric = TableStructureMetric(del_thead_tbody=del_thead_tbody)
+        self.structure_metric = TableStructureMetric(
+            del_thead_tbody=del_thead_tbody,
+            compute_teds=compute_teds or main_indicator == "teds",
+        )
         self.bbox_metric = DetMetric() if compute_bbox_metric else None
         self.main_indicator = main_indicator
         self.box_format = box_format
