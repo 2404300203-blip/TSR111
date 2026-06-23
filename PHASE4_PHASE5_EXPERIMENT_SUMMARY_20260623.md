@@ -70,6 +70,7 @@ Head:
 | Phase5-C scale-up | Phase5-B best | 10000 | scale-up | 0.681999998636 | not run | stable |
 | Phase5-D lr=1e-5 | Phase5-C best | 30000 | 1e-5 | 0.692999999307 | 0.8306299579222143 | improved |
 | Phase5-E lr=5e-6 | Phase5-D best | 30000 | 5e-6 | 0.692999999307 | 0.8308172189543931 | current best |
+| Phase5-F lr=2e-6 | Phase5-E best | 30000 | 2e-6 | 0.693999999306 | 0.8285197072732923 | rejected |
 
 ## Current Overall Best
 
@@ -101,6 +102,13 @@ TEDS gain: 0.8308172189543931 - 0.8306299579222143 = +0.0001872610321788
 structure_acc: tied at 0.693
 ```
 
+Compared with Phase5-F:
+
+```text
+TEDS delta: 0.8285197072732923 - 0.8308172189543931 = -0.0022975116811008
+structure_acc delta: 0.694 - 0.693 = +0.001
+```
+
 ## Phase5 Conclusion
 
 The Full Mamba head is stable on the 4090D setup and improves over the Phase4 lite Mamba best. The best path so far is:
@@ -109,17 +117,16 @@ The Full Mamba head is stable on the 4090D setup and improves over the Phase4 li
 Phase4 Stage6 lite best -> Phase5-A -> Phase5-B -> Phase5-C -> Phase5-D -> Phase5-E
 ```
 
-Phase5-E only gives a small improvement over Phase5-D, but it is the best validated model so far. Further low-LR continuation may still be useful, but gains are likely to be incremental.
+Phase5-E only gives a small improvement over Phase5-D, but it is the best validated model so far. Phase5-F shows that higher internal exact-match accuracy does not necessarily improve TEDS: structure_acc increased to `0.694`, while external TEDS dropped to `0.8285197072732923`.
 
 ## Recommended Next Step
 
-Run one more cautious continuation:
+Move to Phase6 error analysis instead of continuing blind low-LR training:
 
 ```text
-Phase5-F
-init: Phase5-E best
-train samples: 30000
-lr: 2e-6
-goal: test whether the TEDS improvement continues beyond 0.830817
-stop rule: reject if validation drops clearly below Phase5-D/Phase5-E range
+Phase6
+compare: Phase5-E current best vs Phase5-F rejected model
+diagnostics: per-sample TEDS, exact match, predicted structure tokens, ground-truth tokens
+goal: identify why Phase5-F improves structure_acc but loses TEDS
+next fix target: token ordering, span-related structure errors, or loss/selection mismatch
 ```
