@@ -572,3 +572,55 @@ Next recommended direction:
 Phase9-D: gated Phase9-C reranking to reduce regressions while preserving TEDS gains
 ```
 
+## 17. Phase9-D Gated Reranking Result
+
+Phase9-D tested occupancy-badness gating on top of Phase9-C.
+
+Script:
+
+```text
+eval_table_teds_phase9d_gated_rerank_codex.py
+```
+
+Summary report:
+
+```text
+output/phase9d_gated_rerank_20260624/phase9d_gated_rerank_summary.md
+```
+
+Fixed setting:
+
+```text
+topk=3
+shape_lambda=0.5
+```
+
+Results:
+
+| gate_badness | TEDS | structure_acc | changed_samples | Decision |
+|---:|---:|---:|---:|---|
+| 0 | 0.8316667670595694 | 0.688 | 26 | same as Phase9-C |
+| 1 | 0.8316667670595694 | 0.688 | 26 | same as Phase9-C |
+| 2 | 0.8312027446046724 | 0.688 | 22 | lower TEDS |
+| 3 | 0.8309510114629975 | 0.690 | 18 | lower TEDS, better acc |
+| 5 | 0.8309741571320005 | 0.691 | 12 | lower TEDS, better acc |
+
+Decision:
+
+```text
+Phase9-D does not improve the best Phase9-C TEDS.
+Keep Phase9-C topk=3, shape_lambda=0.5 as the best post-processing result.
+```
+
+Interpretation:
+
+- Simple occupancy-badness gating trades TEDS for exact accuracy.
+- The best main metric remains ungated Phase9-C.
+- This is useful as an ablation, but not a new best setting.
+
+Recommended next step:
+
+```text
+Phase10: consolidate experiments into paper-ready tables and figures
+```
+
