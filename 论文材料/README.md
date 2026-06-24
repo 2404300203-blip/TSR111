@@ -1,36 +1,38 @@
-# 论文材料索引
+# DBM-SLANet 论文材料索引
 
-本目录收集 DBM-SLANet / Phase4-Phase10 实验中可直接用于论文、组会汇报或给队长查看的说明文件。
+Date: 2026-06-24
 
-## 推荐阅读顺序
+本目录收集 DBM-SLANet / Phase4-Phase10 实验中可直接用于论文、组会汇报或给队长查看的材料。
 
-1. `PHASE10_LARGE_VAL_5000_RESULTS_20260624.md`
-   - 当前最重要结果。
+## 最推荐阅读顺序
+
+1. `FINAL_PAPER_EXPERIMENT_TABLES_20260624.md`
+   - 最终论文实验表。
+   - 以 5000 样本结果为主，明确 Phase5-E 是最终主模型。
+
+2. `PAPER_WRITING_BLUEPRINT_20260624.md`
+   - 论文写作蓝图。
+   - 包含题目、摘要骨架、章节结构、实验章节写法。
+
+3. `SUBMISSION_READINESS_CHECKLIST_20260624.md`
+   - 投稿准备清单。
+   - 标出已经完成和还需要补的材料。
+
+4. `PHASE10_LARGE_VAL_5000_RESULTS_20260624.md`
+   - 当前最硬主结果。
    - 5000 样本验证集上，Phase5-E full Mamba 相比 baseline 的主表结果和统计检验。
 
-2. `PHASE10_LARGE_VAL_3000_RESULTS_20260624.md`
-   - 3000 样本验证结果。
-   - 说明 Phase5-E 在更大验证集上开始表现出稳定提升。
-
-3. `PHASE10_QUALITATIVE_CASE_ANALYSIS_20260624.md`
+5. `PHASE10_QUALITATIVE_CASE_ANALYSIS_20260624.md`
    - 定性案例分析。
    - 总结 Phase5-E 修复和破坏的代表性 span 案例。
 
-4. `PAPER_READY_EXPERIMENT_TABLES_20260624.md`
-   - 论文实验表格草稿。
-   - 汇总 baseline、Phase4/5、Phase7/8/9/10 的主要实验。
+6. `qualitative_figures/`
+   - 已导出的代表性案例图。
+   - 当前包含 3 个成功案例和 2 个失败案例。
 
-5. `PAPER_EXPERIMENT_RESULTS_20260624.md`
+7. `PAPER_EXPERIMENT_RESULTS_20260624.md`
    - 较完整的实验过程总结。
-   - 包含阶段性结果、消融解释和实验链路。
-
-6. `PHASE10_STATISTICAL_VALIDATION_20260624.md`
-   - 1000 样本上的初步统计验证。
-   - 主要作为历史记录和小样本 pilot 结果。
-
-7. `PHASE4_PHASE5_EXPERIMENT_SUMMARY_20260623.md`
-   - Phase4/Phase5 早期实验总结。
-   - 用于回溯 full Mamba 主模型是怎么来的。
+   - 用于回溯 Phase4-Phase10 的实验链路。
 
 ## 当前论文主结论
 
@@ -50,11 +52,26 @@ structure_acc gain: +0.0284
 
 ```text
 95% CI: [+0.0059055140, +0.0161684765]
-p(delta <= 0) ~= 0
+p(delta <= 0) = 0.0000
 ```
 
-## 注意事项
+## 论文定位
 
-- Phase9-C 后处理在 1000 样本上有提升，但 3000 样本没有超过 Phase5-E，因此不建议作为最终主方法。
+推荐定位：
+
+```text
+一个面向表格结构识别的 Mamba-enhanced structural decoder，在 PubTabNet 5000 样本验证集上稳定提升 TEDS 和 structure accuracy。
+```
+
+需要谨慎表述：
+
+- Phase9-C 后处理不作为最终方法，因为 3000 样本上没有超过 Phase5-E。
 - 当前方法提升精度，但速度低于 baseline，应表述为 accuracy-oriented structural enhancement。
 - 剩余主要失败模式仍是 `rowspan` / `colspan` 相关结构错误。
+
+## 下一步
+
+1. 画方法结构图。
+2. 把 `qualitative_figures/` 做成论文多 panel 图。
+3. 根据 `PAPER_WRITING_BLUEPRINT_20260624.md` 写英文论文初稿。
+4. 如时间允许，补完整 9115 val 或第二数据集评估。
