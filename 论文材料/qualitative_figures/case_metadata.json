@@ -1,0 +1,62 @@
+[
+  {
+    "sample_index": 531,
+    "filename": "PMC2898048_011_00.png",
+    "role": "Success Case",
+    "image_path": "train_data/table/pubtabnet/val/PMC2898048_011_00.png",
+    "figure_path": "论文材料/qualitative_figures/case_531_success_PMC2898048_011_00.png",
+    "baseline_teds": 0.0,
+    "phase5e_teds": 1.0,
+    "delta": 1.0,
+    "baseline_exact": false,
+    "phase5e_exact": true
+  },
+  {
+    "sample_index": 650,
+    "filename": "PMC3496644_001_00.png",
+    "role": "Success Case",
+    "image_path": "train_data/table/pubtabnet/val/PMC3496644_001_00.png",
+    "figure_path": "论文材料/qualitative_figures/case_650_success_PMC3496644_001_00.png",
+    "baseline_teds": 0.0,
+    "phase5e_teds": 1.0,
+    "delta": 1.0,
+    "baseline_exact": false,
+    "phase5e_exact": true
+  },
+  {
+    "sample_index": 885,
+    "filename": "PMC3126717_005_00.png",
+    "role": "Success Case",
+    "image_path": "train_data/table/pubtabnet/val/PMC3126717_005_00.png",
+    "figure_path": "论文材料/qualitative_figures/case_885_success_PMC3126717_005_00.png",
+    "baseline_teds": 0.0,
+    "phase5e_teds": 1.0,
+    "delta": 1.0,
+    "baseline_exact": false,
+    "phase5e_exact": true
+  },
+  {
+    "sample_index": 48,
+    "filename": "PMC4225768_004_00.png",
+    "role": "Failure Case",
+    "image_path": "train_data/table/pubtabnet/val/PMC4225768_004_00.png",
+    "figure_path": "论文材料/qualitative_figures/case_48_failure_PMC4225768_004_00.png",
+    "baseline_teds": 1.0,
+    "phase5e_teds": 0.0,
+    "delta": -1.0,
+    "baseline_exact": true,
+    "phase5e_exact": false
+  },
+  {
+    "sample_index": 414,
+    "filename": "PMC4652242_004_00.png",
+    "role": "Failure Case",
+    "image_path": "train_data/table/pubtabnet/val/PMC4652242_004_00.png",
+    "figure_path": "论文材料/qualitative_figures/case_414_failure_PMC4652242_004_00.png",
+    "baseline_teds": 1.0,
+    "phase5e_teds": 0.0,
+    "delta": -1.0,
+    "baseline_exact": true,
+    "phase5e_exact": false
+  }
+]
