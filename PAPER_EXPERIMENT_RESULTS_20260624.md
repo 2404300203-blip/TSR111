@@ -468,3 +468,48 @@ Next recommended direction:
 Phase9-B: top-k structure token candidate decoding
 ```
 
+## 15. Phase9-B Top-k Structure Token Reranking Result
+
+Phase9-B tested top-k reranking over span attribute tokens.
+
+Script:
+
+```text
+eval_table_teds_phase9_topk_rerank_codex.py
+```
+
+Summary report:
+
+```text
+output/phase9b_topk_rerank_20260624/phase9b_topk_rerank_summary.md
+```
+
+Results:
+
+| top-k | shape_lambda | TEDS | structure_acc | changed_samples | Decision |
+|---:|---:|---:|---:|---:|---|
+| 3 | 0.01 | 0.8308172189543931 | 0.693 | 0 | no effect |
+| 3 | 0.05 | 0.8308172189543931 | 0.693 | 0 | no effect |
+| 3 | 0.10 | 0.8308172189543931 | 0.693 | 2 | TEDS tie |
+| 3 | 0.20 | 0.8308172189543931 | 0.693 | 3 | TEDS tie |
+| 3 | 0.50 | 0.8308172189543931 | 0.693 | 5 | TEDS tie |
+| 3 | 1.00 | 0.8308172189543931 | 0.694 | 6 | acc improves, TEDS tie |
+
+Decision:
+
+```text
+Phase9-B is not a new TEDS best. Keep Phase5-E as the current best model.
+```
+
+Interpretation:
+
+- Top-k reranking can make valid local span-attribute corrections.
+- It slightly improves exact structural accuracy at `shape_lambda=1.0`.
+- TEDS remains tied with Phase5-E, so this is a partial positive result rather than a new main result.
+
+Next recommended direction:
+
+```text
+Phase9-C: full cell-pattern candidate reranking with row-span occupancy validity
+```
+
