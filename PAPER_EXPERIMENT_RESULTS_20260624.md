@@ -430,3 +430,41 @@ Next recommended direction:
 Phase9: candidate-aware span decoding / constrained beam reranking
 ```
 
+## 14. Phase9-A Candidate Reranking Smoke Result
+
+Phase9-A tested conservative candidate-aware span reranking using `margin_shape` mode.
+
+Summary report:
+
+```text
+output/phase9_candidate_rerank_20260624/phase9a_candidate_rerank_summary.md
+```
+
+Results:
+
+| Mode | Margin threshold | TEDS | structure_acc | span suppressions | Decision |
+|---|---:|---:|---:|---:|---|
+| margin_shape | 0.03 | 0.8298878196145485 | 0.691 | 6 | rejected |
+| margin_shape | 0.05 | 0.8299534341067694 | 0.691 | 10 | rejected |
+| margin_shape | 0.10 | 0.8295047777243713 | 0.691 | 18 | rejected |
+| margin_shape | 0.30 | 0.8280996998208352 | 0.685 | 47 | rejected |
+| margin_shape | 0.50 | 0.8205404204409094 | 0.675 | 102 | rejected |
+
+Decision:
+
+```text
+Phase9-A does not improve Phase5-E. Keep Phase5-E as the current best model.
+```
+
+Interpretation:
+
+- Row-width protection reduces some damage but still does not make span suppression useful.
+- The best Phase9-A result is 0.829953, below Phase5-E 0.830817.
+- Direct span deletion/replacement is too coarse.
+
+Next recommended direction:
+
+```text
+Phase9-B: top-k structure token candidate decoding
+```
+
