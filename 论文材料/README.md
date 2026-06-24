@@ -33,6 +33,10 @@ Date: 2026-06-24
 7. `PAPER_EXPERIMENT_RESULTS_20260624.md`
    - 较完整的实验过程总结。
    - 用于回溯 Phase4-Phase10 的实验链路。
+8. `figures/`
+   - 论文用图。
+   - 包含方法结构图和定性案例多 panel 图。
+
 
 ## 当前论文主结论
 
@@ -71,7 +75,7 @@ p(delta <= 0) = 0.0000
 
 ## 下一步
 
-1. 画方法结构图。
-2. 把 `qualitative_figures/` 做成论文多 panel 图。
-3. 根据 `PAPER_WRITING_BLUEPRINT_20260624.md` 写英文论文初稿。
-4. 如时间允许，补完整 9115 val 或第二数据集评估。
+1. 根据 `PAPER_WRITING_BLUEPRINT_20260624.md` 写英文论文初稿。
+2. 给 Related Work 补参考文献。
+3. 如时间允许，补完整 9115 val 或第二数据集评估。
+4. 将 `figures/` 中的图整合进论文初稿。

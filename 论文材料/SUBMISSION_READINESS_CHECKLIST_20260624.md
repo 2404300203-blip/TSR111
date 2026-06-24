@@ -4,7 +4,7 @@ Date: 2026-06-24
 
 ## Current Readiness
 
-Estimated readiness for an SCI-3-oriented manuscript: 75%.
+Estimated readiness for an SCI-3-oriented manuscript: 82%.
 
 ## Completed
 
@@ -18,11 +18,11 @@ Estimated readiness for an SCI-3-oriented manuscript: 75%.
 - [x] Qualitative case mining.
 - [x] Five representative qualitative figures.
 - [x] Paper material folder organized.
+- [x] Method architecture figure.
+- [x] Final multi-panel qualitative figure.
 
 ## Still Needed
 
-- [ ] Method architecture figure.
-- [ ] Final multi-panel qualitative figure.
 - [ ] More complete related-work citations.
 - [ ] Final experiment table formatted for manuscript.
 - [ ] Full English manuscript draft.
@@ -41,7 +41,7 @@ Estimated readiness for an SCI-3-oriented manuscript: 75%.
 
 ## Recommended Next Actions
 
-1. Create method architecture figure.
-2. Create one final qualitative figure with 3 success and 2 failure cases.
-3. Build manuscript experiment section from `FINAL_PAPER_EXPERIMENT_TABLES_20260624.md`.
-4. Start English draft using `PAPER_WRITING_BLUEPRINT_20260624.md`.
+1. Build manuscript experiment section from `FINAL_PAPER_EXPERIMENT_TABLES_20260624.md`.
+2. Start English draft using `PAPER_WRITING_BLUEPRINT_20260624.md`.
+3. Add related-work citations.
+4. Optionally run full 9115 validation or a second dataset.
