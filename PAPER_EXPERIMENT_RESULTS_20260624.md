@@ -37,6 +37,7 @@ train_data/table/pubtabnet/phase4_stage5_val_1000.jsonl
 | Phase5-E full Mamba | Full Mamba, lr=5e-6 | 0.8308172189543931 | 0.693 | 9.565019614337581 | current best |
 | Phase5-F full Mamba | Full Mamba, lr=2e-6 | 0.8285197072732923 | 0.694 | not recorded | rejected |
 | Phase6-D TEDS-selected continuation | TEDS-based checkpoint selection, lr=2e-6 | 0.828765692993526 | 0.689 | not recorded | rejected |
+| Phase7-A span-aware loss | Span-token weighted loss + span false-positive penalty | 0.8280026826282295 | 0.697 | 8.699041995244201 | rejected |
 
 ## 3. Gains Over Baseline
 
@@ -212,12 +213,82 @@ Keep Phase5-E as final model and write Phase7 as negative ablation/error analysi
 
 ## 8. Immediate Next Action
 
-Implement Phase7-A with a small, controlled span-aware loss modification.
+Phase7-A has been implemented and evaluated.
 
-The implementation should avoid changing the baseline path and should use a new config/output directory:
+Config:
 
 ```text
 configs/table/DBM_SLANet_phase7a_span_aware_10000_lr2e6_from_phase5e_codex.yml
+```
+
+Output:
+
+```text
 output/E7a_span_aware_10000_lr2e6_from_phase5e_20260624
 ```
 
+External validation on the same 1000-sample split:
+
+```text
+Structure-TEDS: 0.8280026826282295
+structure_acc: 0.697
+samples: 1000
+fps: 8.699041995244201
+```
+
+Decision:
+
+```text
+Rejected as a new best model.
+```
+
+Reason:
+
+```text
+Phase7-A has higher structure_acc than Phase5-E:
+0.697 vs 0.693
+
+But it has lower Structure-TEDS:
+0.8280026826282295 vs 0.8308172189543931
+```
+
+Interpretation:
+
+- The span-aware loss increased exact-match accuracy.
+- It did not improve tree-edit similarity.
+- This repeats the Phase5-F pattern: higher exact match can still hurt TEDS.
+- The current span weighting is likely too aggressive or too local.
+
+## 9. Recommended Next Action After Phase7-A
+
+Keep Phase5-E as the current final model.
+
+Do not scale Phase7-A to 30000 samples in its current form.
+
+Recommended next experiment:
+
+```text
+Phase7-B: weaker span-aware regularization
+```
+
+Suggested changes:
+
+```text
+span_token_weight: 1.15
+span_fp_weight: 0.01
+train samples: 10000
+init: Phase5-E
+selection metric: TEDS
+```
+
+Rationale:
+
+- Phase7-A proved that span-aware loss changes model behavior.
+- The direction was too strong and lowered TEDS.
+- A weaker version may keep the exact-match gain while reducing TEDS damage.
+
+If Phase7-B still fails:
+
+```text
+Stop span-loss tuning and move to post-hoc span confidence calibration or error-analysis figures for the paper.
+```
