@@ -130,3 +130,135 @@ diagnostics: per-sample TEDS, exact match, predicted structure tokens, ground-tr
 goal: identify why Phase5-F improves structure_acc but loses TEDS
 next fix target: token ordering, span-related structure errors, or loss/selection mismatch
 ```
+
+## Phase6 Result Update
+
+Phase6 tested whether checkpoint selection should use Structure-TEDS directly instead of exact structure match accuracy.
+
+### Phase6-C: TEDS-based metric selection
+
+Code update:
+
+```text
+ppocr/metrics/table_metric.py
+```
+
+The table metric now supports:
+
+```yaml
+Metric:
+  name: TableMetric
+  main_indicator: teds
+  compute_teds: true
+```
+
+Validation:
+
+```text
+TEDS-based checkpoint selection smoke test passed.
+Commit: 57d3bc19b
+```
+
+### Phase6-D: TEDS-selected continuation from Phase5-E
+
+Config:
+
+```text
+configs/table/DBM_SLANet_phase6d_teds_select_30000_lr2e6_from_phase5e_codex.yml
+```
+
+Init checkpoint:
+
+```text
+output/E5_full_mamba_stage5_30000_lr5e6_from_stage4_20260623/best_accuracy.pdparams
+```
+
+External validation on the same 1000-sample set:
+
+```text
+Structure-TEDS: 0.828765692993526
+structure_acc: 0.689
+```
+
+Decision:
+
+```text
+Rejected as a new best model.
+```
+
+Reason:
+
+```text
+Phase6-D is lower than Phase5-E:
+0.828765692993526 vs 0.8308172189543931
+```
+
+However, Phase6-D is still useful because it proved that TEDS-based checkpoint selection works. During training:
+
+```text
+step 6000: acc 0.689, TEDS 0.828766 -> saved as best
+step 7500: acc 0.695, TEDS 0.828531 -> not saved
+```
+
+This confirms that exact-match accuracy and TEDS can disagree, and checkpoint selection should prefer TEDS for table-structure quality.
+
+## Current Overall Best After Phase6
+
+The current best model remains Phase5-E:
+
+```text
+output/E5_full_mamba_stage5_30000_lr5e6_from_stage4_20260623/best_accuracy.pdparams
+```
+
+External validation on 1000 samples:
+
+```text
+Structure-TEDS: 0.8308172189543931
+structure_acc: 0.693
+fps: 9.565019614337581
+```
+
+## Baseline Evaluation Result
+
+The original SLANet baseline was evaluated on the same 1000-sample validation split:
+
+```text
+train_data/table/pubtabnet/phase4_stage5_val_1000.jsonl
+```
+
+Baseline checkpoint:
+
+```text
+output/baseline_package_20260621/model/best_accuracy.pdparams
+```
+
+Baseline config:
+
+```text
+configs/table/SLANet_pubtabnet_baseline_eval_1000_codex.yml
+```
+
+Baseline external validation result:
+
+```text
+Structure-TEDS: 0.8280000534464453
+structure_acc: 0.668
+samples: 1000
+fps: 18.938210592258457
+```
+
+The paper-facing comparison table is:
+
+| Model | Validation split | Structure-TEDS | structure_acc | fps | Decision |
+|---|---|---:|---:|---:|---|
+| Original SLANet baseline | 1000 samples | 0.8280000534464453 | 0.668 | 18.938210592258457 | baseline |
+| Phase4 Stage6 lite Mamba | 1000 samples | 0.8294241307122223 | 0.691 | 12.000899824853926 | previous best |
+| Phase5-E full Mamba | 1000 samples | 0.8308172189543931 | 0.693 | 9.565019614337581 | current best |
+| Phase6-D TEDS-selected continuation | 1000 samples | 0.828765692993526 | 0.689 | not recorded | rejected |
+
+Compared with the original SLANet baseline, the current best Phase5-E improves:
+
+```text
+Structure-TEDS gain: +0.0028171655079478
+structure_acc gain: +0.025
+```
