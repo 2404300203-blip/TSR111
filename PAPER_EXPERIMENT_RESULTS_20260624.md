@@ -513,3 +513,62 @@ Next recommended direction:
 Phase9-C: full cell-pattern candidate reranking with row-span occupancy validity
 ```
 
+## 16. Phase9-C Full Cell-Pattern Candidate Reranking Result
+
+Phase9-C tested full cell-pattern candidate reranking with row/column occupancy validity.
+
+Script:
+
+```text
+eval_table_teds_phase9c_cellpattern_rerank_codex.py
+```
+
+Summary report:
+
+```text
+output/phase9c_cellpattern_rerank_20260624/phase9c_cellpattern_rerank_summary.md
+```
+
+Results:
+
+| top-k | shape_lambda | TEDS | structure_acc | changed_samples | Decision |
+|---:|---:|---:|---:|---:|---|
+| 3 | 0.0 | 0.8292348460505690 | 0.690 | 23 | rejected |
+| 3 | 0.5 | 0.8316667670595694 | 0.688 | 26 | current best TEDS |
+| 3 | 1.0 | 0.8315895138406852 | 0.689 | 28 | improved |
+| 3 | 2.0 | 0.8312144700134876 | 0.690 | 36 | improved |
+
+Best setting:
+
+```text
+Phase9-C topk=3, shape_lambda=0.5
+TEDS: 0.8316667670595694
+structure_acc: 0.688
+```
+
+Compared with Phase5-E:
+
+```text
+TEDS gain: +0.0008495481051763
+structure_acc change: -0.005
+```
+
+Decision:
+
+```text
+Phase9-C is the current best TEDS result if post-processing is allowed.
+Phase5-E remains the best pure model checkpoint.
+```
+
+Interpretation:
+
+- Phase9-C is the first post-processing method that improves the main TEDS metric.
+- It trades exact-match accuracy for better tree-edit similarity.
+- The gain is modest, but directionally useful for the paper because it directly targets span/cell-pattern structural errors.
+
+Next recommended direction:
+
+```text
+Phase9-D: gated Phase9-C reranking to reduce regressions while preserving TEDS gains
+```
+
