@@ -377,3 +377,56 @@ Suggested direction:
 3. Add table-shape consistency checks so row/column counts remain valid after span decisions.
 4. Evaluate with Phase5-E as the base checkpoint first, without retraining.
 5. If post-hoc calibration improves TEDS, then consider making it trainable.
+
+## 13. Phase8 Span Calibration Result
+
+Phase8 tested post-hoc span calibration on the fixed Phase5-E checkpoint.
+
+Script:
+
+```text
+eval_table_teds_phase8_calibrated_codex.py
+```
+
+Summary report:
+
+```text
+output/phase8_span_calibration_20260624/phase8_span_calibration_summary.md
+```
+
+Best unchanged sanity result:
+
+```text
+mode=none: TEDS 0.8308172189543931, structure_acc 0.693
+```
+
+Calibration results:
+
+| Mode | Threshold | TEDS | structure_acc | span suppressions | Decision |
+|---|---:|---:|---:|---:|---|
+| shape | 0.0 | 0.8308172189543931 | 0.693 | 0 | no effect |
+| confidence | 0.98 | 0.8308172189543931 | 0.693 | 0 | no effect |
+| margin | 0.01 | 0.8300003227003581 | 0.692 | 2 | rejected |
+| margin | 0.03 | 0.8290709233605135 | 0.690 | 8 | rejected |
+| margin | 0.05 | 0.8287830494806412 | 0.689 | 13 | rejected |
+| margin | 0.10 | 0.8277324097628077 | 0.689 | 26 | rejected |
+
+Decision:
+
+```text
+Phase8 does not improve Phase5-E. Keep Phase5-E as the current best model.
+```
+
+Interpretation:
+
+- Span cells are represented by multi-token sequences such as `<td`, `rowspan`, `>`, `</td>`.
+- Most span predictions are highly confident.
+- Low-margin span suppression hurts TEDS, which means true spans are also suppressed.
+- Remaining span errors are not simple low-confidence mistakes.
+
+Next recommended direction:
+
+```text
+Phase9: candidate-aware span decoding / constrained beam reranking
+```
+
