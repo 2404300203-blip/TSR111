@@ -38,6 +38,7 @@ train_data/table/pubtabnet/phase4_stage5_val_1000.jsonl
 | Phase5-F full Mamba | Full Mamba, lr=2e-6 | 0.8285197072732923 | 0.694 | not recorded | rejected |
 | Phase6-D TEDS-selected continuation | TEDS-based checkpoint selection, lr=2e-6 | 0.828765692993526 | 0.689 | not recorded | rejected |
 | Phase7-A span-aware loss | Span-token weighted loss + span false-positive penalty | 0.8280026826282295 | 0.697 | 8.699041995244201 | rejected |
+| Phase7-B weak span-aware loss | Weaker span-token weighting and false-positive penalty | 0.8280026826282295 | 0.697 | 11.015914518391822 | rejected |
 
 ## 3. Gains Over Baseline
 
@@ -287,8 +288,92 @@ Rationale:
 - The direction was too strong and lowered TEDS.
 - A weaker version may keep the exact-match gain while reducing TEDS damage.
 
-If Phase7-B still fails:
+## 10. Phase7-B Result and Decision
+
+Phase7-B has been implemented and evaluated.
+
+Config:
 
 ```text
-Stop span-loss tuning and move to post-hoc span confidence calibration or error-analysis figures for the paper.
+configs/table/DBM_SLANet_phase7b_span_aware_weak_10000_lr2e6_from_phase5e_codex.yml
 ```
+
+Output:
+
+```text
+output/E7b_span_aware_weak_10000_lr2e6_from_phase5e_20260624
+```
+
+Independent validation on the same 1000-sample split:
+
+```text
+Structure-TEDS: 0.8280026826282295
+structure_acc: 0.697
+fps: 11.015914518391822
+```
+
+Decision:
+
+```text
+Rejected as a new best model. Keep Phase5-E as the current best checkpoint.
+```
+
+Phase7-B confirms the Phase7-A conclusion: simple span-token reweighting is not an effective improvement path in the current setup. It raises exact-match accuracy compared with Phase5-E, but lowers Structure-TEDS.
+
+## 11. Phase7-B Diagnostic Findings
+
+Diagnostic output:
+
+```text
+output/phase7_span_diagnostics_20260624/phase5e_vs_phase7b_span_analysis.md
+```
+
+Summary against Phase5-E:
+
+```text
+Same TEDS: 936 / 1000
+Phase7-B worse: 35 samples
+Phase7-B better: 29 samples
+Overall mean delta: -0.002814536326
+Exact matches: Phase5-E 693, Phase7-B 697
+```
+
+Span statistics:
+
+| Metric | Phase5-E | Phase7-B |
+|---|---:|---:|
+| Samples with extra predicted spans | 94 | 91 |
+| Total extra predicted spans | 456 | 475 |
+| Samples with missing spans | 127 | 131 |
+| Total missing spans | 446 | 448 |
+
+Interpretation:
+
+- Phase7-B improves some hard span cases, including samples where Phase5-E failed badly.
+- However, it also creates catastrophic regressions on simple or previously correct structures.
+- The main issue is not only span-token recall, but span decision calibration: the model needs to know when a span is structurally safe.
+- The next research direction should be post-hoc span confidence calibration or constrained decoding, not stronger span loss.
+
+## 12. Next Recommended Phase
+
+Stop Phase7 span-loss tuning for now.
+
+Recommended next step:
+
+```text
+Phase8: Span confidence calibration / constrained decoding
+```
+
+Goal:
+
+```text
+Reduce catastrophic false rowspan/colspan cases while preserving the true-span recoveries observed in Phase7-B.
+```
+
+Suggested direction:
+
+1. Extract per-token confidence for span tokens during decoding.
+2. Suppress low-confidence `rowspan` and `colspan` only when the plain-cell alternative is structurally plausible.
+3. Add table-shape consistency checks so row/column counts remain valid after span decisions.
+4. Evaluate with Phase5-E as the base checkpoint first, without retraining.
+5. If post-hoc calibration improves TEDS, then consider making it trainable.
