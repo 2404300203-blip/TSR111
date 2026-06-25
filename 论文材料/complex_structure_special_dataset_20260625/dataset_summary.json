@@ -1,0 +1,47 @@
+{
+  "date": "2026-06-25",
+  "source_split": "train_data/table/pubtabnet/phase10_val_5000.jsonl",
+  "full_complex_count": 4086,
+  "curated_count": 500,
+  "tag_counts_full": {
+    "multi_level_header": 1822,
+    "row_col_span": 2395,
+    "long_range_dependency": 3755,
+    "vertical_dependency": 1147,
+    "hierarchical_span_header": 1500,
+    "tall_table": 1829,
+    "wide_table": 857,
+    "horizontal_dependency": 2053
+  },
+  "tag_counts_curated": {
+    "multi_level_header": 325,
+    "row_col_span": 457,
+    "long_range_dependency": 473,
+    "vertical_dependency": 286,
+    "hierarchical_span_header": 274,
+    "tall_table": 341,
+    "wide_table": 149,
+    "horizontal_dependency": 376
+  },
+  "branch_tag_counts_full": {
+    "dual_branch_complementary": 34,
+    "full_mamba_strong_gain_vs_single_axis": 25,
+    "horizontal_branch_better": 1
+  },
+  "phase5e_better_in_full": 477,
+  "phase5e_worse_in_full": 408,
+  "phase5e_same_in_full": 3201,
+  "copied_images": 500,
+  "span_parser_note": "rowspan/colspan are parsed across split HTML tokens, e.g. <td + rowspan=\"2\" + >.",
+  "generated_figures": [
+    "figures/multi_level_header_contact_sheet.png",
+    "figures/hierarchical_span_header_contact_sheet.png",
+    "figures/horizontal_colspan_contact_sheet.png",
+    "figures/vertical_rowspan_contact_sheet.png",
+    "figures/long_range_dependency_contact_sheet.png",
+    "figures/exemplar_hierarchical_span_header_00045.png",
+    "figures/exemplar_horizontal_dependency_00652.png",
+    "figures/exemplar_vertical_dependency_00045.png",
+    "figures/exemplar_long_range_dependency_00045.png"
+  ]
+}
