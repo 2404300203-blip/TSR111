@@ -151,6 +151,7 @@ class CellFullMambaHead(CellTokenMLPHead):
         mamba_d_conv=3,
         mamba_dt_rank="auto",
         bidirectional=True,
+        axis_mode="dual",
         **kwargs,
     ):
         super().__init__(
@@ -166,6 +167,11 @@ class CellFullMambaHead(CellTokenMLPHead):
             **kwargs,
         )
         self.bidirectional = bidirectional
+        if axis_mode not in ("dual", "horizontal", "vertical"):
+            raise ValueError(
+                "axis_mode must be one of 'dual', 'horizontal', or 'vertical'"
+            )
+        self.axis_mode = axis_mode
         self.horizontal_mamba = SelectiveScanMambaBlock(
             cell_token_dim,
             d_state=mamba_d_state,
@@ -228,7 +234,7 @@ class CellFullMambaHead(CellTokenMLPHead):
         return scatter_ordered(encoded, order)
 
     def forward(self, inputs, targets=None):
-        out = super().forward(inputs, targets=targets)
+        out = CellTokenMLPHead.forward(self, inputs, targets=targets)
         loc_preds = out["loc_preds"]
         tokens = out["cell_tokens"]
         mask = None
@@ -250,6 +256,10 @@ class CellFullMambaHead(CellTokenMLPHead):
         v_encoded = self.encode_axis(
             tokens, vertical_order, self.vertical_mamba, v_reverse, mask=mask
         )
+        if self.axis_mode == "horizontal":
+            v_encoded = tokens
+        elif self.axis_mode == "vertical":
+            h_encoded = tokens
         fused = self.fusion(paddle.concat([tokens, h_encoded, v_encoded], axis=-1))
         out["cell_tokens"] = fused
         out["horizontal_cell_tokens"] = h_encoded
