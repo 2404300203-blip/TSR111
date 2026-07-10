@@ -13,8 +13,13 @@ from .table_att_head import SLAHead
 class GeometryTokenEncoder(nn.Layer):
     """Encode normalized cell geometry into a lightweight token."""
 
-    def __init__(self, input_dim=8, hidden_dim=128, dropout=0.1):
+    def __init__(self, input_dim=8, hidden_dim=128, dropout=0.1, feature_mode="full"):
         super().__init__()
+        if feature_mode not in ("full", "zero", "center_wh", "no_area_aspect"):
+            raise ValueError(
+                "feature_mode must be one of full, zero, center_wh, or no_area_aspect"
+            )
+        self.feature_mode = feature_mode
         self.net = nn.Sequential(
             nn.Linear(input_dim, hidden_dim),
             nn.LayerNorm(hidden_dim),
@@ -43,6 +48,19 @@ class GeometryTokenEncoder(nn.Layer):
         geom = paddle.concat(
             [x_center, y_center, width, height, area, aspect, left, top], axis=-1
         )
+        if self.feature_mode == "zero":
+            geom = paddle.zeros_like(geom)
+        elif self.feature_mode == "center_wh":
+            zeros = paddle.zeros_like(area)
+            geom = paddle.concat(
+                [x_center, y_center, width, height, zeros, zeros, zeros, zeros],
+                axis=-1,
+            )
+        elif self.feature_mode == "no_area_aspect":
+            zeros = paddle.zeros_like(area)
+            geom = paddle.concat(
+                [x_center, y_center, width, height, zeros, zeros, left, top], axis=-1
+            )
         return self.net(geom)
 
 
@@ -65,6 +83,7 @@ class CellTokenMLPHead(SLAHead):
         use_attn=False,
         cell_token_dim=128,
         cell_token_dropout=0.1,
+        geom_feature_mode="full",
         **kwargs,
     ):
         super().__init__(
@@ -78,7 +97,10 @@ class CellTokenMLPHead(SLAHead):
             **kwargs,
         )
         self.cell_token_encoder = GeometryTokenEncoder(
-            input_dim=8, hidden_dim=cell_token_dim, dropout=cell_token_dropout
+            input_dim=8,
+            hidden_dim=cell_token_dim,
+            dropout=cell_token_dropout,
+            feature_mode=geom_feature_mode,
         )
         self.cell_presence_head = nn.Sequential(
             nn.Linear(cell_token_dim, cell_token_dim),
