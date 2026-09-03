@@ -11,6 +11,7 @@ import paddle.nn as nn
 import paddle.nn.functional as F
 
 from .cell_token_mlp_head import CellTokenMLPHead
+from .table_att_head import SLAHead
 
 
 def silu(x):
@@ -151,7 +152,13 @@ class CellFullMambaHead(CellTokenMLPHead):
         mamba_d_conv=3,
         mamba_dt_rank="auto",
         bidirectional=True,
+        horizontal_bidirectional=None,
+        vertical_bidirectional=None,
+        share_directional_mamba=False,
         axis_mode="dual",
+        use_gt_bbox_mask=True,
+        prune_aux_at_inference=False,
+        skip_redundant_presence_at_inference=False,
         **kwargs,
     ):
         super().__init__(
@@ -167,28 +174,67 @@ class CellFullMambaHead(CellTokenMLPHead):
             **kwargs,
         )
         self.bidirectional = bidirectional
+        self.horizontal_bidirectional = (
+            bidirectional
+            if horizontal_bidirectional is None
+            else horizontal_bidirectional
+        )
+        self.vertical_bidirectional = (
+            bidirectional if vertical_bidirectional is None else vertical_bidirectional
+        )
+        self.share_directional_mamba = share_directional_mamba
+        self.use_gt_bbox_mask = use_gt_bbox_mask
+        self.prune_aux_at_inference = prune_aux_at_inference
+        self.skip_redundant_presence_at_inference = (
+            skip_redundant_presence_at_inference
+        )
         if axis_mode not in ("dual", "horizontal", "vertical"):
+            raise ValueError("axis_mode must be one of 'dual', 'horizontal', or 'vertical'")
+        if share_directional_mamba and (
+            axis_mode != "dual"
+            or not self.horizontal_bidirectional
+            or not self.vertical_bidirectional
+        ):
             raise ValueError(
-                "axis_mode must be one of 'dual', 'horizontal', or 'vertical'"
+                "share_directional_mamba requires dual-axis bidirectional mode"
             )
         self.axis_mode = axis_mode
-        self.horizontal_mamba = SelectiveScanMambaBlock(
-            cell_token_dim,
-            d_state=mamba_d_state,
-            expand=mamba_expand,
-            d_conv=mamba_d_conv,
-            dt_rank=mamba_dt_rank,
-            dropout=cell_token_dropout,
-        )
-        self.vertical_mamba = SelectiveScanMambaBlock(
-            cell_token_dim,
-            d_state=mamba_d_state,
-            expand=mamba_expand,
-            d_conv=mamba_d_conv,
-            dt_rank=mamba_dt_rank,
-            dropout=cell_token_dropout,
-        )
-        if bidirectional:
+        if share_directional_mamba:
+            self.shared_mamba = SelectiveScanMambaBlock(
+                cell_token_dim,
+                d_state=mamba_d_state,
+                expand=mamba_expand,
+                d_conv=mamba_d_conv,
+                dt_rank=mamba_dt_rank,
+                dropout=cell_token_dropout,
+            )
+            self.direction_embedding = self.create_parameter(
+                shape=[4, cell_token_dim],
+                default_initializer=nn.initializer.Normal(std=0.02),
+            )
+        elif axis_mode in ("dual", "horizontal"):
+            self.horizontal_mamba = SelectiveScanMambaBlock(
+                cell_token_dim,
+                d_state=mamba_d_state,
+                expand=mamba_expand,
+                d_conv=mamba_d_conv,
+                dt_rank=mamba_dt_rank,
+                dropout=cell_token_dropout,
+            )
+        if not share_directional_mamba and axis_mode in ("dual", "vertical"):
+            self.vertical_mamba = SelectiveScanMambaBlock(
+                cell_token_dim,
+                d_state=mamba_d_state,
+                expand=mamba_expand,
+                d_conv=mamba_d_conv,
+                dt_rank=mamba_dt_rank,
+                dropout=cell_token_dropout,
+            )
+        if (
+            not share_directional_mamba
+            and self.horizontal_bidirectional
+            and axis_mode in ("dual", "horizontal")
+        ):
             self.horizontal_reverse_mamba = SelectiveScanMambaBlock(
                 cell_token_dim,
                 d_state=mamba_d_state,
@@ -197,6 +243,11 @@ class CellFullMambaHead(CellTokenMLPHead):
                 dt_rank=mamba_dt_rank,
                 dropout=cell_token_dropout,
             )
+        if (
+            not share_directional_mamba
+            and self.vertical_bidirectional
+            and axis_mode in ("dual", "vertical")
+        ):
             self.vertical_reverse_mamba = SelectiveScanMambaBlock(
                 cell_token_dim,
                 d_state=mamba_d_state,
@@ -206,7 +257,7 @@ class CellFullMambaHead(CellTokenMLPHead):
                 dropout=cell_token_dropout,
             )
 
-        fusion_inputs = cell_token_dim * 3
+        fusion_inputs = cell_token_dim * (3 if axis_mode == "dual" else 2)
         self.fusion = nn.Sequential(
             nn.Linear(fusion_inputs, cell_token_dim),
             nn.LayerNorm(cell_token_dim),
@@ -233,12 +284,64 @@ class CellFullMambaHead(CellTokenMLPHead):
             encoded = 0.5 * (encoded + reversed_encoded)
         return scatter_ordered(encoded, order)
 
+    def encode_shared_dual(self, tokens, horizontal_order, vertical_order, mask=None):
+        token_index = lambda order: order.unsqueeze(-1).expand(
+            [-1, -1, tokens.shape[-1]]
+        )
+        horizontal = paddle.take_along_axis(
+            tokens, token_index(horizontal_order), axis=1
+        )
+        vertical = paddle.take_along_axis(tokens, token_index(vertical_order), axis=1)
+        sequences = [
+            horizontal,
+            paddle.flip(horizontal, axis=[1]),
+            vertical,
+            paddle.flip(vertical, axis=[1]),
+        ]
+        sequences = [
+            sequence + self.direction_embedding[idx].reshape([1, 1, -1])
+            for idx, sequence in enumerate(sequences)
+        ]
+        shared_tokens = paddle.concat(sequences, axis=0)
+
+        shared_mask = None
+        if mask is not None:
+            horizontal_mask = paddle.take_along_axis(mask, horizontal_order, axis=1)
+            vertical_mask = paddle.take_along_axis(mask, vertical_order, axis=1)
+            shared_mask = paddle.concat(
+                [
+                    horizontal_mask,
+                    paddle.flip(horizontal_mask, axis=[1]),
+                    vertical_mask,
+                    paddle.flip(vertical_mask, axis=[1]),
+                ],
+                axis=0,
+            )
+
+        encoded = self.shared_mamba(shared_tokens, shared_mask)
+        h_forward, h_reverse, v_forward, v_reverse = paddle.split(
+            encoded, num_or_sections=4, axis=0
+        )
+        h_encoded = 0.5 * (h_forward + paddle.flip(h_reverse, axis=[1]))
+        v_encoded = 0.5 * (v_forward + paddle.flip(v_reverse, axis=[1]))
+        return (
+            scatter_ordered(h_encoded, horizontal_order),
+            scatter_ordered(v_encoded, vertical_order),
+        )
+
     def forward(self, inputs, targets=None):
-        out = CellTokenMLPHead.forward(self, inputs, targets=targets)
+        if self.prune_aux_at_inference and not self.training:
+            return SLAHead.forward(self, inputs, targets=targets)
+
+        if self.skip_redundant_presence_at_inference and not self.training:
+            out = SLAHead.forward(self, inputs, targets=targets)
+            out["cell_tokens"] = self.cell_token_encoder(out["loc_preds"])
+        else:
+            out = super().forward(inputs, targets=targets)
         loc_preds = out["loc_preds"]
         tokens = out["cell_tokens"]
         mask = None
-        if targets is not None and len(targets) >= 3:
+        if self.use_gt_bbox_mask and targets is not None and len(targets) >= 3:
             bbox_mask = targets[2].astype("float32")
             bbox_mask = bbox_mask[:, : tokens.shape[1]]
             mask = paddle.clip(bbox_mask.sum(axis=-1), min=0.0, max=1.0)
@@ -248,21 +351,29 @@ class CellFullMambaHead(CellTokenMLPHead):
         horizontal_order = paddle.argsort(y_center * 1000.0 + x_center, axis=1)
         vertical_order = paddle.argsort(x_center * 1000.0 + y_center, axis=1)
 
-        h_reverse = self.horizontal_reverse_mamba if self.bidirectional else None
-        v_reverse = self.vertical_reverse_mamba if self.bidirectional else None
-        h_encoded = self.encode_axis(
-            tokens, horizontal_order, self.horizontal_mamba, h_reverse, mask=mask
-        )
-        v_encoded = self.encode_axis(
-            tokens, vertical_order, self.vertical_mamba, v_reverse, mask=mask
-        )
-        if self.axis_mode == "horizontal":
-            v_encoded = tokens
-        elif self.axis_mode == "vertical":
-            h_encoded = tokens
-        fused = self.fusion(paddle.concat([tokens, h_encoded, v_encoded], axis=-1))
+        h_encoded = None
+        v_encoded = None
+        fusion_tokens = [tokens]
+        if self.share_directional_mamba:
+            h_encoded, v_encoded = self.encode_shared_dual(
+                tokens, horizontal_order, vertical_order, mask=mask
+            )
+            fusion_tokens.extend([h_encoded, v_encoded])
+        elif self.axis_mode in ("dual", "horizontal"):
+            h_reverse = getattr(self, "horizontal_reverse_mamba", None)
+            h_encoded = self.encode_axis(
+                tokens, horizontal_order, self.horizontal_mamba, h_reverse, mask=mask
+            )
+            fusion_tokens.append(h_encoded)
+        if not self.share_directional_mamba and self.axis_mode in ("dual", "vertical"):
+            v_reverse = getattr(self, "vertical_reverse_mamba", None)
+            v_encoded = self.encode_axis(
+                tokens, vertical_order, self.vertical_mamba, v_reverse, mask=mask
+            )
+            fusion_tokens.append(v_encoded)
+        fused = self.fusion(paddle.concat(fusion_tokens, axis=-1))
         out["cell_tokens"] = fused
-        out["horizontal_cell_tokens"] = h_encoded
-        out["vertical_cell_tokens"] = v_encoded
+        out["horizontal_cell_tokens"] = h_encoded if h_encoded is not None else tokens
+        out["vertical_cell_tokens"] = v_encoded if v_encoded is not None else tokens
         out["cell_has_text_logits"] = self.cell_presence_head(fused).squeeze(-1)
         return out
