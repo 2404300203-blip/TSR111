@@ -107,67 +107,6 @@ configs/table/
 
 这些配置记录了不同阶段对 SLANet、LSNet、FSAM、Mamba-style head 和辅助 cell token 任务的尝试。
 
-## 没有上传的内容
-
-以下内容在远程服务器上可能存在，但没有进入 GitHub 仓库：
-
-- `train_data/`
-- `output/`
-- `inference/`
-- `inference_results/`
-- `tmp/`
-- `*.pdparams`
-- `*.pdopt`
-- `*.pdstates`
-- `*.states`
-- `*.ckpt`
-- `*.jsonl`
-- `*.zip`
-- `*.tar.gz`
-
-原因是这些文件通常是数据集、模型权重、训练日志或实验输出，体积很大，不适合直接放入普通 GitHub 仓库。
-
-如果后续需要保存模型权重或数据集，建议使用：
-
-- GitHub Release
-- Git LFS
-- 网盘/对象存储
-- 单独的数据集仓库
-
-## 常用命令
-
-运行 Phase 1 matcher 单元测试：
-
-```bash
-python -m pytest tests/test_ocr_aware_table_matcher.py
-```
-
-运行 Phase 2 cell token head 单元测试：
-
-```bash
-python -m pytest tests/test_cell_token_mlp_head.py
-```
-
-运行 Phase 3 dual-branch head 单元测试：
-
-```bash
-python -m pytest tests/test_cell_dual_branch_mamba_head.py
-```
-
-检查当前 Git 跟踪文件体积：
-
-```bash
-git ls-files -z | xargs -0 du -ch | tail -1
-git ls-files -z | xargs -0 du -h | sort -hr | head -30
-```
-
-从远程服务器推送到 GitHub：
-
-```bash
-git remote set-url tsr ssh://git@ssh.github.com:443/2404300203-blip/TSR.git
-git push -u tsr tsr-code-only:main --force
-```
-
 ## 仓库结构提示
 
 主要实验代码集中在：
