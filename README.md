@@ -107,26 +107,6 @@ configs/table/
 
 这些配置记录了不同阶段对 SLANet、LSNet、FSAM、Mamba-style head 和辅助 cell token 任务的尝试。
 
-## 没有上传的内容
-
-以下内容在远程服务器上可能存在，但没有进入 GitHub 仓库：
-
-- `train_data/`
-- `output/`
-- `inference/`
-- `inference_results/`
-- `tmp/`
-- `*.pdparams`
-- `*.pdopt`
-- `*.pdstates`
-- `*.states`
-- `*.ckpt`
-- `*.jsonl`
-- `*.zip`
-- `*.tar.gz`
-
-原因是这些文件通常是数据集、模型权重、训练日志或实验输出，体积很大，不适合直接放入普通 GitHub 仓库。
-
 如果后续需要保存模型权重或数据集，建议使用：
 
 - GitHub Release
