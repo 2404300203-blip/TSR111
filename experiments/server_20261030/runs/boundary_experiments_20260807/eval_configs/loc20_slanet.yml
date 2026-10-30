@@ -1,0 +1,188 @@
+Architecture:
+  Backbone:
+    name: PPLCNet
+    pretrained: true
+    scale: 1.0
+    use_ssld: true
+  Head:
+    bidirectional: true
+    cell_token_dim: 128
+    cell_token_dropout: 0.1
+    hidden_size: 256
+    loc_reg_num: 4
+    mamba_d_conv: 3
+    mamba_d_state: 16
+    mamba_dt_rank: auto
+    mamba_expand: 2
+    max_text_length: 500
+    name: SLAHead
+  Neck:
+    name: CSPPAN
+    out_channels: 96
+  algorithm: SLANet
+  model_type: table
+Eval:
+  dataset:
+    data_dir: train_data/table/pubtabnet/val/
+    label_file_list:
+    - train_data/table/pubtabnet/complex_structure_cta500_20260625.jsonl
+    name: PubTabDataSet
+    transforms:
+    - DecodeImage:
+        channel_first: false
+        img_mode: BGR
+    - TableLabelEncode:
+        learn_empty_box: false
+        loc_reg_num: 4
+        max_text_length: 500
+        merge_no_span_structure: true
+        replace_empty_cell_token: false
+    - TableBoxEncode:
+        in_box_format: xyxy
+        out_box_format: xyxy
+    - ResizeTableImage:
+        max_len: 488
+    - NormalizeImage:
+        mean:
+        - 0.485
+        - 0.456
+        - 0.406
+        order: hwc
+        scale: 1./255.
+        std:
+        - 0.229
+        - 0.224
+        - 0.225
+    - PaddingTableImage:
+        size:
+        - 488
+        - 488
+    - ToCHWImage: null
+    - KeepKeys:
+        keep_keys:
+        - image
+        - structure
+        - bboxes
+        - bbox_masks
+        - length
+        - shape
+  loader:
+    batch_size_per_card: 4
+    drop_last: false
+    num_workers: 0
+    shuffle: false
+Global:
+  amp_custom_white_list:
+  - concat
+  - elementwise_sub
+  - set_value
+  box_format: xyxy
+  cal_metric_during_train: true
+  character_dict_path: ppocr/utils/dict/table_structure_dict.txt
+  character_type: en
+  checkpoints: output/boundary_experiments_20260807/loc_weight_sweep/slanet_loc20/latest
+  d2s_train_image_shape:
+  - 3
+  - -1
+  - -1
+  epoch_num: 1
+  eval_batch_step:
+  - 0
+  - 99999999
+  infer_img: train_data/table/pubtabnet/val/PMC5755158_010_01.png
+  infer_mode: false
+  log_smooth_window: 20
+  max_text_length: 500
+  model_name: SLANet
+  pretrained_model: null
+  print_batch_step: 20
+  save_epoch_step: 5
+  save_inference_dir: output/boundary_experiments_20260807/loc_weight_sweep/slanet_loc20/infer
+  save_model_dir: output/boundary_experiments_20260807/loc_weight_sweep/slanet_loc20
+  save_res_path: output/boundary_experiments_20260807/loc_weight_sweep/slanet_loc20/infer
+  seed: 20260806
+  use_gpu: true
+  use_sync_bn: true
+  use_visualdl: false
+Loss:
+  loc_loss: smooth_l1
+  loc_weight: 20.0
+  name: SLALoss
+  structure_weight: 1.0
+Metric:
+  box_format: xyxy
+  compute_bbox_metric: false
+  loc_reg_num: 4
+  main_indicator: acc
+  name: TableMetric
+Optimizer:
+  beta1: 0.9
+  beta2: 0.999
+  clip_norm: 5.0
+  lr:
+    decay_epochs:
+    - 4
+    - 6
+    learning_rate: 2.0e-06
+    name: Piecewise
+    values:
+    - 2.0e-06
+    - 1.0e-06
+    - 5.0e-07
+  name: Adam
+  regularizer:
+    factor: 0.0
+    name: L2
+PostProcess:
+  merge_no_span_structure: true
+  name: TableLabelDecode
+Train:
+  dataset:
+    data_dir: train_data/table/pubtabnet/train/
+    label_file_list:
+    - train_data/table/pubtabnet/phase4_stage5_train_30000.jsonl
+    name: PubTabDataSet
+    transforms:
+    - DecodeImage:
+        channel_first: false
+        img_mode: BGR
+    - TableLabelEncode:
+        learn_empty_box: false
+        loc_reg_num: 4
+        max_text_length: 500
+        merge_no_span_structure: true
+        replace_empty_cell_token: false
+    - TableBoxEncode:
+        in_box_format: xyxy
+        out_box_format: xyxy
+    - ResizeTableImage:
+        max_len: 488
+    - NormalizeImage:
+        mean:
+        - 0.485
+        - 0.456
+        - 0.406
+        order: hwc
+        scale: 1./255.
+        std:
+        - 0.229
+        - 0.224
+        - 0.225
+    - PaddingTableImage:
+        size:
+        - 488
+        - 488
+    - ToCHWImage: null
+    - KeepKeys:
+        keep_keys:
+        - image
+        - structure
+        - bboxes
+        - bbox_masks
+        - length
+        - shape
+  loader:
+    batch_size_per_card: 4
+    drop_last: true
+    num_workers: 0
+    shuffle: true

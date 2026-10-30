@@ -141,12 +141,19 @@ git ls-files -z | xargs -0 du -ch | tail -1
 git ls-files -z | xargs -0 du -h | sort -hr | head -30
 ```
 
-从远程服务器推送到 GitHub：
+推送到本仓库（先完成提交）：
 
 ```bash
-git remote set-url tsr ssh://git@ssh.github.com:443/2404300203-blip/TSR.git
-git push -u tsr tsr-code-only:main --force
+git push origin HEAD:main
 ```
+
+## 服务器补充代码归档（2026-10-30）
+
+已补充整理训练输出目录中的实验脚本、运行配置及模型 head 历史备份。
+查看 [归档说明](experiments/server_20261030/README.md) 与
+[来源及校验清单](experiments/server_20261030/manifest.csv)。
+当前实现仍从 `ppocr/`、`ppstructure/`、`configs/` 和 `scripts/` 使用。
+归档中的旧脚本需要按实际数据和权重位置检查路径。
 
 ## 仓库结构提示
 

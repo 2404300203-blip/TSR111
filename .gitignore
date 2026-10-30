@@ -44,3 +44,27 @@ test_tipc/web/node_modules/
 .github/workflows/
 
 .github/workflows/
+
+# Server datasets, weights, credentials and temporary artifacts
+/pretrained/
+/pubtabnet/
+/external_weights*/
+/venvs/
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.pdparams
+*.pdopt
+*.pdmodel
+*.pdiparams
+*.pdiparams.info
+*.pth
+*.pt
+*.ckpt
+*.safetensors
+*.pid
+
+# Preserve archived inference configuration (no inference weights)
+!/experiments/server_20261030/runs/deployment_export_20260812/inference/

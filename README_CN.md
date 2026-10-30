@@ -165,3 +165,10 @@ https://github.com/PaddlePaddle/PaddleOCR
 ```
 
 原始 PaddleOCR 的许可证保留在 `LICENSE` 文件中。
+
+
+## 服务器补充代码归档（2026-10-30）
+
+训练输出目录中的实验脚本、配置和模型 head 历史备份已整理至
+[experiments/server_20261030](experiments/server_20261030/README.md)。
+完整来源和 SHA-256 见该目录的 `manifest.csv`。数据集、权重和运行缓存仍保留在服务器。
